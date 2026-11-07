@@ -1,0 +1,19 @@
+name: Find public Pharos audit example (real chain only)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - scripts/find-example.mjs
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: node scripts/find-example.mjs
