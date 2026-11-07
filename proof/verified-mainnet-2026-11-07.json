@@ -1,0 +1,69 @@
+{
+  "schema": "pharos-audit-log-agent-production-verified-v1",
+  "verifiedAtUtc": "2026-11-07T08:36:36.719Z",
+  "worker": "https://audit-log-agent.trantanlong2411.workers.dev/",
+  "repository": "https://github.com/trantanlong2411-droid/Audit-Log-Agent",
+  "workflow": {
+    "unitAndLiveMcp": "https://github.com/trantanlong2411-droid/Audit-Log-Agent/actions/runs/42356190519",
+    "production": "https://github.com/trantanlong2411-droid/Audit-Log-Agent/actions/runs/42356190612"
+  },
+  "network": "Pharos Mainnet",
+  "chainId": 1672,
+  "reportPeriod": {
+    "startUtc": "2026-11-01",
+    "endUtc": "2026-11-07"
+  },
+  "exampleWallet": "0xa55170Cd156cA6dafd0b1EE3de87F3161799aD4C",
+  "verifiedTransaction": {
+    "hash": "0x28a76a84b85e494cdf509611421e08ee871e74e9bd8b332e9ebcf146b60bd61b",
+    "blockNumber": 22205123,
+    "blockTimestampUtc": "2026-11-05T18:48:08.000Z",
+    "classification": "swap",
+    "selector": "0x414bf389",
+    "status": "success",
+    "explorer": "https://www.pharosscan.xyz/tx/0x28a76a84b85e494cdf509611421e08ee871e74e9bd8b332e9ebcf146b60bd61b",
+    "verification": "Chain MCP get_transaction + get_block + get_transaction_receipt"
+  },
+  "sampledActivity": {
+    "counts": {
+      "transfer_in": 0,
+      "transfer_out": 0,
+      "swap": 1,
+      "approval": 0,
+      "contract_interaction": 0
+    },
+    "monitoredTokens": [
+      "USDC",
+      "WPROS",
+      "WETH"
+    ],
+    "logWindowsSucceeded": 18,
+    "logWindowsAttempted": 18,
+    "selectedBlockWindows": [
+      {
+        "fromBlock": 21899136,
+        "toBlock": 21900135
+      },
+      {
+        "fromBlock": 22083607,
+        "toBlock": 22084606
+      },
+      {
+        "fromBlock": 22268077,
+        "toBlock": 22269076
+      }
+    ]
+  },
+  "exportsVerified": [
+    "markdown",
+    "csv"
+  ],
+  "tests": {
+    "unit": true,
+    "workerBuild": true,
+    "liveMcp": true,
+    "production": true
+  },
+  "scopeNotice": "The report totals count observed records in noncontiguous samples plus explicitly verified user-supplied hashes. They are NOT exhaustive wallet transactions for the entire date range. Off-sample swaps, native transfers, other assets or internal transfers can be missed.",
+  "limitations": "The optional evidence hash was provided to make the live example observable; transaction evidence was verified independently and not invented. No signing or on-chain writes. No bonus video was created."
+}
