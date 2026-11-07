@@ -22,7 +22,11 @@ export function validateRequest(input,now=Date.now()){
  if(exclusiveEnd-start>31*86400000)throw Error('Maximum report range is 31 calendar days');
  if(start>now)throw Error('The selected date range is in the future');
  if(exclusiveEnd<now-180*86400000)throw Error('Reports older than 180 days are outside this demo scope');
- return {wallet,start,end:Math.min(exclusiveEnd,now),startDate:input.start,endDate:input.end};
+ const evidenceTxHashes=typeof input.evidenceTxHashes==='string'?
+   [...new Set(input.evidenceTxHashes.split(/[\s,;]+/).filter(Boolean).map(x=>x.toLowerCase()))]:[];
+ if(evidenceTxHashes.length>2||evidenceTxHashes.some(x=>!/^0x[\da-f]{64}$/.test(x)))
+   throw Error('Provide up to two valid 0x transaction hashes as optional evidence');
+ return {wallet,start,end:Math.min(exclusiveEnd,now),startDate:input.start,endDate:input.end,evidenceTxHashes};
 }
 export function topic(address){return '0x'+getAddress(address).slice(2).toLowerCase().padStart(64,'0')}
 export function parseBlock(block){
@@ -149,7 +153,8 @@ export async function analyze(input,connectFn=connect,now=Date.now()){
  const request=validateRequest(input,now),owner=request.wallet;
  let cli;const errors=[],events=[],blocksCache=new Map();
  const empty={logsAttempted:0,logsSucceeded:0,sampledBlocks:[],txHashesEnriched:0,receiptsEnriched:0,
-  tokens:TOKENS.map(x=>x.symbol),windows:[],observedEventCapPerQuery:60};
+  tokens:TOKENS.map(x=>x.symbol),windows:[],observedEventCapPerQuery:60,
+  manuallySuppliedTxHashes:request.evidenceTxHashes.length,manuallyVerifiedTxHashes:[]};
  try{
   cli=await connectFn();
   const tools=(await cli.list()).map(t=>t.name);
@@ -202,7 +207,48 @@ export async function analyze(input,connectFn=connect,now=Date.now()){
     events.push(...nativeEvents(block,owner));
    }catch(err){errors.push('Could not inspect native activity in sampled block #'+n+': '+String(err.message||err).slice(0,120));}
   }
-  const txHashes=[...new Set(events.filter(e=>e.hash).map(e=>e.hash))].slice(0,EVIDENCE_LIMIT);
+  // Optional user-supplied hashes are never trusted as evidence until
+  // Pharos Chain MCP verifies the wallet relationship and exact block date.
+  // This is proof enrichment, not proof the entire period was enumerated.
+  for(const hash of request.evidenceTxHashes){
+   try{
+    const tx=await cli.tool('get_transaction',{hash});
+    if(!tx||String(tx.hash||'').toLowerCase()!==hash)throw Error('Transaction not found on Mainnet');
+    const from=(tx.from||'').toLowerCase(),to=(tx.to||'').toLowerCase();
+    if(from!==owner.toLowerCase()&&to!==owner.toLowerCase())throw Error('Transaction does not involve the queried wallet');
+    const height=Number(eth(tx.blockNumber||'0x0'));
+    if(!Number.isSafeInteger(height)||height<blockStart||height>blockEnd)throw Error('Transaction is outside the selected approximate date range');
+    const block=await fetchBlock(height);
+    if(block.secs*1000<request.start||block.secs*1000>=request.end)throw Error('Transaction UTC timestamp is outside selected dates');
+    const receipt=await cli.tool('get_transaction_receipt',{hash});
+    if(!receipt||typeof receipt.status!=='string')throw Error('On-chain receipt is unavailable');
+    empty.manuallyVerifiedTxHashes.push(hash);
+    empty.receiptsEnriched++;
+    const passed=receipt.status==='0x1';
+    if(Array.isArray(receipt.logs)){
+     for(const log of receipt.logs){
+      const token=TOKENS.find(x=>x.address.toLowerCase()===String(log.address||'').toLowerCase());
+      if(!token)continue;
+      const matched=parseLog(log,token,owner);
+      if(matched){matched.source+=' (verified by supplied transaction receipt)';events.push(matched);}
+     }
+    }
+    events.push(...nativeEvents({height,transactions:[tx]},owner));
+    if(from===owner.toLowerCase()&&typeof tx.input==='string'&&tx.input.length>=10){
+     const selector=tx.input.slice(0,10).toLowerCase();
+     const type=SWAP_SELECTORS.has(selector)?'swap':selector==='0x095ea7b3'?'approval':'contract_interaction';
+     const label=type==='swap'?(passed?'Swap transaction':'Failed swap attempt'):
+       type==='approval'?'Token approval call':(passed?'Contract interaction':'Failed contract interaction');
+     events.push({id:'manual-call-'+hash,type,label,token:null,amountRaw:'0',amount:'0',unit:'',
+      blockNumber:height,hash,from:tx.from,to:tx.to,link:EXPLORER+'/tx/'+hash,selector,
+      status:passed?'success':'failed',
+      source:'Explicit transaction evidence verified through Chain MCP get_transaction, get_block and get_transaction_receipt'});
+    }
+   }catch(err){errors.push('Evidence transaction '+hash+': '+String(err.message||err).slice(0,140));}
+  }
+  const txHashes=[...new Set(events.filter(e=>e.hash).map(e=>e.hash))]
+   .filter(x=>!request.evidenceTxHashes.includes(x.toLowerCase()))
+   .slice(0,request.evidenceTxHashes.length?2:EVIDENCE_LIMIT);
   for(const hash of txHashes){
    try{
     const tx=await cli.tool('get_transaction',{hash});
@@ -256,6 +302,7 @@ export function markdown(report){
   '- Log windows completed: '+report.coverage.logsSucceeded+' / '+report.coverage.logsAttempted,
   '- Sampled windows: '+report.coverage.windows.map(w=>w.fromBlock+'–'+w.toBlock).join(', '),
   '- Tokens: '+report.coverage.tokens.join(', '),
+  '- User-provided transaction hashes verified: '+(report.coverage.manuallyVerifiedTxHashes||[]).length,
   '- '+report.coverage.limitation,
   ...report.coverage.errors.map(s=>'- Partial failure: '+tidy(s)),''];
  return lines.join('\n');
