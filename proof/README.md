@@ -11,3 +11,5 @@
 | Reviewer demo proof | [Public Worker](https://audit-log-agent.trantanlong2411.workers.dev/), [live CI](https://github.com/trantanlong2411-droid/Audit-Log-Agent/actions), [architecture](../ARCHITECTURE.md) |
 
 **No invented evidence:** A unit-test fixture is not a live transaction. Real chain calls are verified by the live smoke and deployed Worker workflows. Data is sampled, not a complete wallet activity index; all reported totals are explicitly **sample-only**. Optional video not created.
+
+- Optional exact transaction evidence: two hashes max, checked against wallet address, on-chain timestamp and receipt. Built-in demo uses a real Mainnet swap with selector 0x414bf389.

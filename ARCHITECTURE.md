@@ -50,3 +50,7 @@ The export is an activity report, NOT a compliance certification, financial stat
 ## Auditability
 
 Reproducible code and unit tests in GitHub; separate live MCP smoke job; production-check job validates the public Worker, categories and both exports. No private key, signature, user account, wallet approval or broadcast.
+
+## Optional exact transaction evidence
+
+To make the public demo useful even when the wallet has no activity in the three sampled log windows, the user may submit up to two known transaction hashes. Each is verified by official Chain MCP transaction, matching wallet, actual block timestamp within the requested UTC range and receipt; relevant ERC-20 logs and a proven swap method selector are then classified. This is exact per-transaction evidence, **not address-indexed historical discovery**. The built-in example demonstrates a real Pharos swap from 2026-11-05.

@@ -70,3 +70,7 @@ Cloudflare Worker: **audit-log-agent** → Builds → connect GitHub repository 
 - [ERC-20 standard events](https://eips.ethereum.org/EIPS/eip-20)
 
 An optional bonus video was not created as part of this build. The user may record the live UI if requested by reviewers.
+
+## Verified transaction supplement for sparse wallets
+
+Since a short free-plan block sample can often find zero transactions for a valid wallet, the public form also accepts **up to two optional real transaction hashes**. The Worker verifies each hash through `get_transaction`, its exact on-chain `get_block` timestamp, and `get_transaction_receipt`. It rejects unrelated / out-of-period hashes and decodes token events from the receipt. This supplements (but never disguises) the incomplete sampled search. The built-in example uses a **public observed swap transaction** on 2026-11-05 at block 22,205,123, with its real sender and hash; it is not a fabricated sample.

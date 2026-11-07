@@ -77,3 +77,10 @@ test('individual token RPC failure degrades honestly',async()=>{
  assert.ok(out.coverage.errors.some(x=>x.includes('WETH')));
  assert.equal(out.coverage.completePeriod,false);
 });
+
+test('known user-supplied transaction is verified against the selected wallet and UTC date range',async()=>{
+ const data=await analyze({address:OWNER,start:'2026-11-01',end:'2026-11-07',evidenceTxHashes:HASH},mockClient(),NOW);
+ assert.deepEqual(data.coverage.manuallyVerifiedTxHashes,[HASH]);
+ assert.ok(data.records.some(e=>e.id==='manual-call-'+HASH));
+ assert.throws(()=>validateRequest({address:OWNER,start:'2026-11-01',end:'2026-11-07',evidenceTxHashes:'not-a-hash'},NOW),/valid/);
+});
